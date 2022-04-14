@@ -6,10 +6,11 @@ RUN apt install iptables iputils-ping -y
 CMD \
 echo 1 > /proc/sys/net/ipv4/ip_forward && \
 ip link add wg0 type wireguard && \
-ip addr add 10.13.13.1 peer 10.13.14.1/32 dev wg0 &&\
+ip addr add ${SERVER_LOCAL_ADDRESS_IP} peer ${CLIENT_LOCAL_ADDRESS_IP} dev wg0 &&\
 ip link set up wg0 &&\
 wg setconf wg0 /etc/wireguard/wg0.conf && \
-iptables -t nat -A PREROUTING -d 172.17.0.2 -p udp --dport 12345  -j RETURN &&\
-iptables -t nat -A PREROUTING -d 172.17.0.2 -j DNAT --to-destination 10.13.14.1 &&\
-iptables -t nat -A POSTROUTING -j SNAT -d 10.13.14.1 --to-source 10.13.13.1 &&\
+DOCKER_CURRENT_IP=$(hostname -i) &&\
+iptables -t nat -A PREROUTING -d $DOCKER_CURRENT_IP -p udp --dport ${SERVER_PORT}  -j RETURN &&\
+iptables -t nat -A PREROUTING -d $DOCKER_CURRENT_IP -j DNAT --to-destination ${CLIENT_LOCAL_ADDRESS_IP} &&\
+iptables -t nat -A POSTROUTING -j SNAT -d ${CLIENT_LOCAL_ADDRESS_IP} --to-source ${SERVER_LOCAL_ADDRESS_IP} &&\
  sleep 10000
