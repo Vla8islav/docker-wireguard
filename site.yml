@@ -1,0 +1,9 @@
+---
+
+- name: Gather facts
+  hosts: all
+
+- name:
+  hosts: all
+  roles:
+    - docker-wireguard

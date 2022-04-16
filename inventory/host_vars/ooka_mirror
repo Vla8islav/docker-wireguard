@@ -1,0 +1,6 @@
+---
+
+ansible_host: 213.108.248.129
+
+ansible_user: root
+ansible_ssh_user: root

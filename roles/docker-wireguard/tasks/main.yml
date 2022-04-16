@@ -1,0 +1,36 @@
+---
+
+- name: Install docker
+  package:
+    name:
+      - 'docker.io'
+      - 'python3-docker'
+    state: present
+  become: yes
+  when: use_docker
+  tags:
+    - install
+
+- block:
+
+    - name:
+      debug:
+        var: groups
+
+    - name: Server docker
+      community.docker.docker_container:
+        name: "hello"
+          #image: "hello-world"
+        image: "vla8islav/wireguard-debian-server:latest"
+        state: started
+      register: abc
+
+    - name:
+      debug:
+        var: abc
+
+  when: inventory_hostname in groups['clients']
+  delegate_to: "{{ wireguard_server }}"
+  tags:
+    - run
+

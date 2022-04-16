@@ -1,0 +1,9 @@
+---
+
+clients:
+  hosts:
+    test:
+
+server:
+  hosts:
+    ooka_mirror:
