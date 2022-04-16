@@ -12,5 +12,5 @@ wg setconf wg0 /etc/wireguard/wg0.conf && \
 DOCKER_CURRENT_IP=$(hostname -i) &&\
 iptables -t nat -A PREROUTING -d $DOCKER_CURRENT_IP -p udp --dport ${SERVER_PORT}  -j RETURN &&\
 iptables -t nat -A PREROUTING -d $DOCKER_CURRENT_IP -j DNAT --to-destination ${CLIENT_LOCAL_ADDRESS_IP} &&\
-iptables -t nat -A POSTROUTING -j SNAT -d ${CLIENT_LOCAL_ADDRESS_IP} --to-source ${SERVER_LOCAL_ADDRESS_IP} &&\
+iptables -t nat -A POSTROUTING -d ${CLIENT_LOCAL_ADDRESS_IP} -j SNAT --to-source ${SERVER_LOCAL_ADDRESS_IP} &&\
 while true; do sleep 30; done;
