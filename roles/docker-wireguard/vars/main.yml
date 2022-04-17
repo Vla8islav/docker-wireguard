@@ -1,0 +1,9 @@
+---
+
+docker_pkgs:
+  - python3-docker
+
+wireguard_conf_dir: "{{ ansible_user_dir + '/wireguard-shared' }}"
+wireguard_conf: "{{ wireguard_conf_dir + '/wg.conf' }}"
+wireguard_privkey: "{{ wireguard_conf_dir + '/privkey' }}"
+wireguard_pubkey: "{{ wireguard_conf_dir + '/pubkey' }}"

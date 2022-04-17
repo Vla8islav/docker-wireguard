@@ -1,0 +1,53 @@
+---
+
+- name: Create shared directory
+  ansible.builtin.file:
+    path: "{{ wireguard_conf_dir }}"
+    state: directory
+    mode: '0700'
+
+- name: Create local key directory
+  file:
+    path: "{{ playbook_dir + '/wg_keys/' + inventory_hostname }}"
+    state: directory
+    mode: '0700'
+  delegate_to: localhost
+
+- name: gen_keys | Generate keys in docker
+  community.docker.docker_container:
+    name: "hello"
+    image: "vla8islav/wireguard-debian-server:latest"
+    state: started
+    volumes:
+      - "{{ wireguard_conf_dir + ':/etc/wireguard' }}"
+    command: |-
+      /bin/bash -c '
+        wg genkey > /etc/wireguard/{{ wireguard_privkey | basename }}
+        cat /etc/wireguard/{{ wireguard_privkey | basename }} | wg pubkey > /etc/wireguard/{{ wireguard_pubkey | basename }}
+      '
+  register: abc
+  when: use_docker
+
+- name: gen_keys (localhost) | Copy keys to localhost
+  synchronize:
+    mode: pull
+    src: "{{ item }}"
+    dest: "{{ playbook_dir + '/wg_keys/' + inventory_hostname + '/' + item | basename }}"
+    delete: yes
+  loop:
+    - "{{ wireguard_privkey }}"
+    - "{{ wireguard_pubkey }}"
+
+  #  ansible.builtin.copy:
+  #    src: "{{ item }}"
+  #    dest: "{{ playbook_dir + '/wg_keys/' + inventory_hostname + '/' + item | basename }}"
+  #    remote_src: true
+  #  loop:
+  #    - "{{ wireguard_privkey }}"
+  #    - "{{ wireguard_pubkey }}"
+  #  delegate_to: localhost
+
+- name:
+  debug:
+    var: abc
+

@@ -1,21 +1,49 @@
 ---
 
-- name: Install docker
-  package:
-    name:
-      - 'docker.io'
-      - 'python3-docker'
-    state: present
-  become: yes
+- block:
+    - name: Check docker version
+      ansible.builtin.command:
+        cmd: docker version
+      ignore_errors: true
+      check_mode: false
+      changed_when: false
+      register: docker_version_out
+
+    - name: Define required packages
+      set_fact:
+        docker_pkgs: >-
+          {{ docker_pkgs + ['docker.io'] }}
+      when: docker_version_out.failed
+
+    - name: Show required packages
+      debug:
+        var: docker_pkgs
+
+    - name: Install docker
+      package:
+        name: "{{ docker_pkgs }}"
+        state: present
+      become: yes
+      tags:
+        - install
+
   when: use_docker
-  tags:
-    - install
+
+- name: Check config
+  ansible.builtin.stat:
+    path: "{{ wireguard_conf }}"
+  register: wireguard_conf_stat
+
+- name: Import key generation tasks
+  ansible.builtin.import_tasks: gen_keys.yml
+  when: not wireguard_conf_stat.stat.exists
+
+- name:
+  assert:
+    that:
+      - 1 == 2
 
 - block:
-
-    - name:
-      debug:
-        var: groups
 
     - name: Server docker
       community.docker.docker_container:
@@ -23,13 +51,15 @@
           #image: "hello-world"
         image: "vla8islav/wireguard-debian-server:latest"
         state: started
+        volumes:
+          /wireguard-shared:/etc/wireguard
+        capabilities:
+          - net_admin
+        privileged: true
+        env_file: ../.env
+        command: sleep infinity
       register: abc
 
-    - name:
-      debug:
-        var: abc
-
-  when: inventory_hostname in groups['clients']
   delegate_to: "{{ wireguard_server }}"
   tags:
     - run
