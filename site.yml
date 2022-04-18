@@ -2,6 +2,8 @@
 
 - name: Gather facts
   hosts: all
+  tags:
+    - always
 
 - name:
   hosts: all

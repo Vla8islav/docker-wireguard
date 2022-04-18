@@ -33,10 +33,23 @@
   ansible.builtin.stat:
     path: "{{ wireguard_conf }}"
   register: wireguard_conf_stat
+  tags:
+    - gen_keys
 
 - name: Import key generation tasks
-  ansible.builtin.import_tasks: gen_keys.yml
+  ansible.builtin.include_tasks:
+    file: gen_keys.yml
+    apply:
+      tags:
+        - gen_keys
+  loop:
+    - "{{ inventory_hostname }}"
+    - "{{ wireguard_server }}"
+  loop_control:
+    loop_var: 'cur_host'
   when: not wireguard_conf_stat.stat.exists
+  tags:
+    - gen_keys
 
 - name:
   assert:

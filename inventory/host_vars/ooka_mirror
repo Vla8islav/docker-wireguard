@@ -4,3 +4,7 @@ ansible_host: 213.108.248.129
 
 ansible_user: root
 ansible_ssh_user: root
+
+wireguard_local_address: '10.13.13.1/32'
+
+wireguard_conf_dir: '/root/wireguard-shared'

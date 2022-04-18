@@ -1,53 +1,71 @@
 ---
 
-- name: Create shared directory
-  ansible.builtin.file:
-    path: "{{ wireguard_conf_dir }}"
-    state: directory
-    mode: '0700'
+- block:
+    - name: Create shared directory
+      ansible.builtin.file:
+        path: "{{ hostvars[cur_host].wireguard_conf_dir }}"
+        state: directory
+        mode: '0700'
 
-- name: Create local key directory
-  file:
-    path: "{{ playbook_dir + '/wg_keys/' + inventory_hostname }}"
-    state: directory
-    mode: '0700'
-  delegate_to: localhost
+          #- name: Create local key directory
+          #  file:
+          #    path: "{{ playbook_dir + '/wg_keys/' + inventory_hostname }}"
+          #    state: directory
+          #    mode: '0700'
+          #  delegate_to: localhost
 
-- name: gen_keys | Generate keys in docker
-  community.docker.docker_container:
-    name: "hello"
-    image: "vla8islav/wireguard-debian-server:latest"
-    state: started
-    volumes:
-      - "{{ wireguard_conf_dir + ':/etc/wireguard' }}"
-    command: |-
-      /bin/bash -c '
-        wg genkey > /etc/wireguard/{{ wireguard_privkey | basename }}
-        cat /etc/wireguard/{{ wireguard_privkey | basename }} | wg pubkey > /etc/wireguard/{{ wireguard_pubkey | basename }}
-      '
-  register: abc
-  when: use_docker
+    - name: gen_keys | Generate keys in docker
+      community.docker.docker_container:
+        name: "hello"
+        image: "vla8islav/wireguard-debian-server:latest"
+        state: started
+        volumes:
+          - "{{ wireguard_conf_dir + ':/etc/wireguard' }}"
+        command: |-
+          /bin/bash -c '
+            wg genkey > /etc/wireguard/{{ wireguard_privkey_file | basename }}
+            cat /etc/wireguard/{{ wireguard_privkey_file | basename }} | wg pubkey > /etc/wireguard/{{ wireguard_pubkey_file | basename }}
+          '
+      register: abc
+      when: use_docker
 
-- name: gen_keys (localhost) | Copy keys to localhost
-  synchronize:
-    mode: pull
-    src: "{{ item }}"
-    dest: "{{ playbook_dir + '/wg_keys/' + inventory_hostname + '/' + item | basename }}"
-    delete: yes
-  loop:
-    - "{{ wireguard_privkey }}"
-    - "{{ wireguard_pubkey }}"
+    - name:
+      debug:
+        var: abc
 
-  #  ansible.builtin.copy:
-  #    src: "{{ item }}"
-  #    dest: "{{ playbook_dir + '/wg_keys/' + inventory_hostname + '/' + item | basename }}"
-  #    remote_src: true
-  #  loop:
-  #    - "{{ wireguard_privkey }}"
-  #    - "{{ wireguard_pubkey }}"
-  #  delegate_to: localhost
+    - name: Read private key
+      ansible.builtin.command: cat "{{ wireguard_privkey_file }}"
+      register: wireguard_privkey
 
-- name:
-  debug:
-    var: abc
+    - name: Read public key
+      ansible.builtin.command: cat "{{ wireguard_pubkey_file }}"
+      register: wireguard_pubkey
+
+    - name:
+      debug:
+        var: hostvars[cur_host].wireguard_privkey
+
+    - name:
+      debug:
+        var: hostvars[cur_host].wireguard_pubkey
+
+    - name: Generate peer comfing
+      ansible.builtin.template:
+        src: 'wg_peer.conf'
+        force: true
+        backup: true
+        dest: "{{ peer_conf }}"
+
+  delegate_to: "{{ cur_host }}"
+  delegate_facts: true
+
+    #- name: gen_keys (localhost) | Copy keys to localhost
+    #  synchronize:
+    #    mode: pull
+    #    src: "{{ item }}"
+    #    dest: "{{ playbook_dir + '/wg_keys/' + inventory_hostname + '/' + item | basename }}"
+    #    delete: yes
+    #  loop:
+    #    - "{{ wireguard_privkey }}"
+    #    - "{{ wireguard_pubkey }}"
 
